@@ -22,7 +22,7 @@ use which::which;
 #[clap(global_setting(AppSettings::DeriveDisplayOrder))]
 #[clap(name = "steghunt")]
 #[clap(author = "@quicktus")]
-#[clap(version = "1.0")]
+#[clap(version = "1.1")]
 #[clap(about = "Automated bulk detection and cracking of files hidden using steghide.", long_about = None)]
 #[clap(propagate_version = true)]
 
