@@ -1,7 +1,7 @@
 # steghunt
  This script automates looking for stegfiles hidden by [steghide](https://www.kali.org/tools/steghide/) in a large collection of media files using [stegseek](https://github.com/RickdeJager/stegseek).
  
- Use `stegshunt --help` to get the full list of available options:
+ Use `steghunt --help` to get the full list of available options:
 ```
 USAGE:
     steghunt [OPTIONS] --input <IN_PATH> --output <OUT_PATH> <MODE>
