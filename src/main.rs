@@ -108,7 +108,13 @@ fn main() {
     let mut files_found = 0;
     let mut files_cracked = 0;
 
-    let mut log_file = File::create("steghunt_log").unwrap();
+    File::create("steghunt_log");
+    let mut log_file = fs::OpenOptions::new()
+      .write(true)
+      .append(true)
+      .open("steghunt_log")
+      .unwrap();
+      
     if args.mode != Mode::seed {
         fs::create_dir_all(args.out_path.clone());
     }
@@ -146,7 +152,7 @@ fn main() {
             }
             if !err_no_seed {
                 files_found += 1;
-                write!(log_file, "{}", str_path);
+                write!(log_file, "{}\n", str_path);
             }
                 
             cmd.wait();
@@ -206,7 +212,7 @@ fn main() {
             }
             if !err_no_seed {
                 files_found += 1;
-                write!(log_file, "{}", str_path);
+                write!(log_file, "{}\n", str_path);
                 
                 // crack
                     let mut cmd = Command::new("stegseek")
