@@ -209,7 +209,6 @@ fn main() {
                 write!(log_file, "{}", str_path);
                 
                 // crack
-                //{
                     let mut cmd = Command::new("stegseek")
                                     .arg("--crack")
                                     .arg("-a")
@@ -236,7 +235,6 @@ fn main() {
                     if !err_no_crack {
                         files_cracked += 1;
                     }
-                //}
                 
             }
             
