@@ -1,28 +1,21 @@
 #![allow(unused)]
-use std::{fs, path, io, time, thread};
-use std::io::{stdout, Write, BufReader, BufRead};
+use std::{fs, path, io, time};
+use std::io::{stdout, Write, prelude::*};
 use std::process::{Command, Stdio};
-use std::time::Duration;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::path::PathBuf;
 use std::fs::File;
-use std::io::prelude::*;
 use clap::{AppSettings, ArgEnum, Parser};
-use crossterm::{
-    ExecutableCommand, execute, Result,
-    cursor::{Hide, Show, RestorePosition, SavePosition}
-};
+use crossterm::{execute, cursor::{Hide, Show, RestorePosition, SavePosition}};
 use crate::time::Instant;
 use sha256::digest_file;
 use which::which;
-
 
 /// run stegseek on every file in a directory
 #[derive(Parser)]
 #[clap(global_setting(AppSettings::DeriveDisplayOrder))]
 #[clap(name = "steghunt")]
 #[clap(author = "@quicktus")]
-#[clap(version = "1.1")]
+#[clap(version = "1.2")]
 #[clap(about = "Automated bulk detection and cracking of files hidden using steghide.", long_about = None)]
 #[clap(propagate_version = true)]
 
@@ -61,7 +54,6 @@ struct Cli {
 
 }
 
-
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 #[allow(non_camel_case_types)]
 enum Mode {
@@ -69,7 +61,6 @@ enum Mode {
     crack,
     seedcrack,
 }
-
 
 fn main() {
     let args = Cli::parse();
@@ -137,25 +128,13 @@ fn main() {
                                  .arg("-sf").arg(steg_file)
                                  .stdout(Stdio::piped())
                                  .stderr(Stdio::piped())
-                                 .spawn()
+                                 .status()
                                  .unwrap();
 
-            let stderr = cmd.stderr.as_mut().unwrap();
-            let stderr_reader = BufReader::new(stderr);
-            let stderr_lines = stderr_reader.lines();
-            let mut err_no_seed = false;
-
-            for line in stderr_lines {
-                if line.unwrap().contains("error:") { //  Could not find a valid seed.
-                err_no_seed = true;
-                }
-            }
-            if !err_no_seed {
+            if cmd.success() {
                 files_found += 1;
                 write!(log_file, "{}\n", str_path);
             }
-                
-            cmd.wait();
         }
     
         else if args.mode == Mode::crack {
@@ -169,24 +148,12 @@ fn main() {
                                  .arg("-xf").arg(&args.out_path.join(steg_file.file_name().unwrap().to_str().unwrap().to_owned() + ".out"))
                                  .stdout(Stdio::piped())
                                  .stderr(Stdio::piped())
-                                 .spawn()
+                                 .status()
                                  .unwrap();
 
-            let stderr = cmd.stderr.as_mut().unwrap();
-            let stderr_reader = BufReader::new(stderr);
-            let stderr_lines = stderr_reader.lines();
-            let mut err_no_crack = false;
-
-            for line in stderr_lines {
-                if line.unwrap().contains("error:") { // Could not find a valid passphrase.
-                err_no_crack = true;
-                }
-            }
-            if !err_no_crack {
+            if cmd.success() {
                 files_cracked += 1;
             }
-            
-            cmd.wait();
         }
     
         else if args.mode == Mode::seedcrack {
@@ -197,54 +164,31 @@ fn main() {
                                  .arg("-sf").arg(steg_file.clone())
                                  .stdout(Stdio::piped())
                                  .stderr(Stdio::piped())
-                                 .spawn()
+                                 .status()
                                  .unwrap();
 
-            let stderr = cmd.stderr.as_mut().unwrap();
-            let stderr_reader = BufReader::new(stderr);
-            let stderr_lines = stderr_reader.lines();
-            let mut err_no_seed = false;
-
-            for line in stderr_lines {
-                if line.unwrap().contains("error:") {
-                    err_no_seed = true;
-                }
-            }
-            if !err_no_seed {
+            if cmd.success() {
                 files_found += 1;
                 write!(log_file, "{}\n", str_path);
                 
                 // crack
-                    let mut cmd = Command::new("stegseek")
-                                    .arg("--crack")
-                                    .arg("-a")
-                                    .arg("-f")
-                                    .arg("-q")
-                                    .arg("-wl").arg(&wordlist)
-                                    .arg("-sf").arg(steg_file.clone())
-                                    .arg("-xf").arg(&args.out_path.join(steg_file.file_name().unwrap().to_str().unwrap().to_owned() + ".out"))
-                                    .stdout(Stdio::piped())
-                                    .stderr(Stdio::piped())
-                                    .spawn()
-                                    .unwrap();
+                let mut cmd = Command::new("stegseek")
+                                .arg("--crack")
+                                .arg("-a")
+                                .arg("-f")
+                                .arg("-q")
+                                .arg("-wl").arg(&wordlist)
+                                .arg("-sf").arg(steg_file.clone())
+                                .arg("-xf").arg(&args.out_path.join(steg_file.file_name().unwrap().to_str().unwrap().to_owned() + ".out"))
+                                .stdout(Stdio::piped())
+                                .stderr(Stdio::piped())
+                                .status()
+                                .unwrap();
 
-                    let stderr = cmd.stderr.as_mut().unwrap();
-                    let stderr_reader = BufReader::new(stderr);
-                    let stderr_lines = stderr_reader.lines();
-                    let mut err_no_crack = false;
-
-                    for line in stderr_lines {
-                        if line.unwrap().contains("error:") { // Could not find a valid passphrase.
-                            err_no_crack = true;
-                        }
-                    }
-                    if !err_no_crack {
-                        files_cracked += 1;
-                    }
-                
+                if cmd.success() {
+                    files_cracked += 1;
+                }   
             }
-            
-            cmd.wait();
         }
         
         files_processed += 1;
@@ -257,7 +201,6 @@ fn main() {
             );
             print_stats(time_diff, files_processed, files_total,  files_found, files_cracked, args.mode);
         }
-        
     }
 
     if ! quiet {
@@ -269,7 +212,6 @@ fn main() {
             Show
         );
     }
-
 }
 
 fn get_files(dir_name: &path::PathBuf, hashes: &mut Vec<String>, min_size: u32, dupe_skip: bool, recursive: bool) -> Vec<path::PathBuf> {
